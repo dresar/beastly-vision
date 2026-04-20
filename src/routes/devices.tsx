@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
+
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 
@@ -37,6 +37,8 @@ interface Device {
   api_key: string;
 }
 
+import { getDevicesFn, addDeviceFn, removeDeviceFn } from "@/lib/api";
+
 function Devices() {
   const { isAdmin } = useAuth();
   const [devices, setDevices] = useState<Device[]>([]);
@@ -45,46 +47,40 @@ function Devices() {
   const [location, setLocation] = useState("");
 
   const load = async () => {
-    const { data } = await supabase
-      .from("devices")
-      .select("id, name, location, status, last_seen, api_key")
-      .order("created_at", { ascending: false });
-    setDevices((data ?? []) as Device[]);
+    const data = await getDevicesFn();
+    setDevices(data as Device[]);
   };
 
   useEffect(() => {
     load();
-    const ch = supabase
-      .channel("devices-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "devices" },
-        () => load(),
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
+    // For demo purposes, we'll poll every 10 seconds
+    const interval = setInterval(load, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const addDevice = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from("devices").insert({ name, location });
-    if (error) {
-      toast.error("Gagal menambah perangkat", { description: error.message });
-    } else {
+    try {
+      await addDeviceFn({ data: { name, location } });
       toast.success("Perangkat ditambahkan");
       setOpen(false);
       setName("");
       setLocation("");
+      load();
+    } catch (error: any) {
+      toast.error("Gagal menambah perangkat", { description: error.message });
     }
   };
 
   const removeDevice = async (id: string) => {
     if (!confirm("Hapus perangkat ini?")) return;
-    const { error } = await supabase.from("devices").delete().eq("id", id);
-    if (error) toast.error(error.message);
-    else toast.success("Perangkat dihapus");
+    try {
+      await removeDeviceFn({ data: { id } });
+      toast.success("Perangkat dihapus");
+      load();
+    } catch (error: any) {
+      toast.error("Gagal menghapus perangkat", { description: error.message });
+    }
   };
 
   return (

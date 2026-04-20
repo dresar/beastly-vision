@@ -15,7 +15,7 @@ import {
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { getDetectionsFn } from "@/lib/api";
 
 export const Route = createFileRoute("/analytics")({
   component: () => (
@@ -43,12 +43,7 @@ function Analytics() {
   const [data, setData] = useState<Det[]>([]);
 
   useEffect(() => {
-    supabase
-      .from("detections")
-      .select("primary_label, detected_at, threat_level")
-      .order("detected_at", { ascending: false })
-      .limit(1000)
-      .then(({ data }) => setData((data ?? []) as Det[]));
+    getDetectionsFn().then((res) => setData(res as Det[]));
   }, []);
 
   // Distribution

@@ -7,19 +7,30 @@ Sistem monitoring real-time untuk deteksi intrusi satwa liar berbasis ESP32-CAM,
 ```
 ┌──────────────┐   MQTT    ┌───────────────┐  HTTP   ┌──────────────────┐  Realtime  ┌────────────┐
 │  ESP32-CAM   │──────────▶│ YOLOv8 Worker │────────▶│ Lovable Cloud    │───────────▶│  Dashboard │
-│  (firmware)  │  publish  │ (Python)      │  POST   │ /functions/      │   subscribe│  (Web UI)  │
-│              │           │ Subscribe MQTT│ /ingest │   v1/ingest      │            │            │
+│  ESP32-CAM   │──────────▶│ YOLOv8 Worker │────────▶│ TanStack Server  │───────────▶│  Dashboard │
+│  (firmware)  │  publish  │ (Python)      │  POST   │ /_server?_serverF│   polling  │  (Web UI)  │
+│              │           │ Subscribe MQTT│ /ingest │ nId=ingestFn     │            │            │
 └──────────────┘           └───────────────┘         └──────────────────┘            └────────────┘
 ```
 
 1. **ESP32-CAM** menangkap gambar (trigger PIR atau periodik), publish ke topik MQTT `wildguard/<device_id>/frame`.
-2. **YOLOv8 Worker** subscribe topik tersebut, jalankan inference, upload snapshot ke storage publik, lalu POST hasil deteksi ke `/functions/v1/ingest`.
-3. **Lovable Cloud** menyimpan ke Postgres + memicu realtime subscription.
+2. **YOLOv8 Worker** subscribe topik tersebut, jalankan inference, upload snapshot ke storage publik, lalu POST hasil deteksi ke `/_server?_serverFnId=ingestFn`.
+3. **Neon Database** menyimpan data ke Postgres.
 4. **Dashboard** menampilkan live stream, riwayat, analitik, dan notifikasi.
 
-## Endpoint Ingest
+### 🌐 Backend & Database
+- **Neon Database**: PostgreSQL serverless untuk penyimpanan data persisten.
+- **TanStack Start Server Functions**: Logika backend stateless yang berjalan di Vercel Edge/Serverless.
+- **Custom JWT Auth**: Sistem autentikasi mandiri berbasis JSON Web Token dan HTTP-only cookies.
+- **REST Ingest**: Endpoint `/_server?_serverFnId=ingestFn` untuk menerima deteksi dari worker Python/IoT.
 
-`POST <SUPABASE_URL>/functions/v1/ingest` (publik — auth via `device_api_key`)
+### 🚀 Deployment
+Web app ini dioptimalkan untuk **Vercel**. Pastikan variabel lingkungan berikut diset:
+- `DATABASE_URL`: Connection string dari Neon (pooler recommended).
+- `JWT_SECRET`: String acak panjang untuk menandatangani token.
+
+### 🛠️ Ingest Endpoint
+`POST /_server?_serverFnId=ingestFn` (auth via `device_api_key`)
 
 ```json
 {

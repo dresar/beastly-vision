@@ -21,7 +21,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { ThreatBadge, StatusDot } from "@/components/threat-badge";
-import { supabase } from "@/integrations/supabase/client";
+
 
 export const Route = createFileRoute("/")({
   component: () => (
@@ -45,6 +45,8 @@ interface Device {
   status: string;
 }
 
+import { getDetectionsFn, getDevicesFn } from "@/lib/api";
+
 function DashboardHome() {
   const [detections, setDetections] = useState<Detection[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
@@ -52,43 +54,25 @@ function DashboardHome() {
 
   useEffect(() => {
     const load = async () => {
+      const [dets, devs] = await Promise.all([
+        getDetectionsFn(),
+        getDevicesFn(),
+      ]);
+      
+      setDetections(dets as Detection[]);
+      setDevices(devs as Device[]);
+      
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
-
-      const [{ data: dets }, { data: devs }, { count }] = await Promise.all([
-        supabase
-          .from("detections")
-          .select("id, primary_label, threat_level, detected_at, max_confidence, device_id")
-          .order("detected_at", { ascending: false })
-          .limit(50),
-        supabase.from("devices").select("id, name, status"),
-        supabase
-          .from("detections")
-          .select("id", { count: "exact", head: true })
-          .gte("detected_at", startOfDay.toISOString()),
-      ]);
-      setDetections(dets ?? []);
-      setDevices(devs ?? []);
-      setTodayCount(count ?? 0);
+      const count = dets.filter(d => new Date(d.detected_at) >= startOfDay).length;
+      setTodayCount(count);
     };
     load();
 
-    const channel = supabase
-      .channel("dashboard-detections")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "detections" },
-        (payload) => {
-          const d = payload.new as Detection;
-          setDetections((prev) => [d, ...prev].slice(0, 50));
-          setTodayCount((c) => c + 1);
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    // In a real Vercel/Neon app, you'd use a more robust real-time solution
+    // For this demo, we'll refresh every 30 seconds
+    const interval = setInterval(load, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const onlineDevices = devices.filter((d) => d.status === "online").length;

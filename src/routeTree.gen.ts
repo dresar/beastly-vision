@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as MlRouteImport } from './routes/ml'
 import { Route as LiveRouteImport } from './routes/live'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as DevicesRouteImport } from './routes/devices'
@@ -26,6 +27,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MlRoute = MlRouteImport.update({
+  id: '/ml',
+  path: '/ml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LiveRoute = LiveRouteImport.update({
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/devices': typeof DevicesRoute
   '/history': typeof HistoryRoute
   '/live': typeof LiveRoute
+  '/ml': typeof MlRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
 }
@@ -76,6 +83,7 @@ export interface FileRoutesByTo {
   '/devices': typeof DevicesRoute
   '/history': typeof HistoryRoute
   '/live': typeof LiveRoute
+  '/ml': typeof MlRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
 }
@@ -87,6 +95,7 @@ export interface FileRoutesById {
   '/devices': typeof DevicesRoute
   '/history': typeof HistoryRoute
   '/live': typeof LiveRoute
+  '/ml': typeof MlRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
 }
@@ -99,6 +108,7 @@ export interface FileRouteTypes {
     | '/devices'
     | '/history'
     | '/live'
+    | '/ml'
     | '/notifications'
     | '/settings'
   fileRoutesByTo: FileRoutesByTo
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/devices'
     | '/history'
     | '/live'
+    | '/ml'
     | '/notifications'
     | '/settings'
   id:
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/devices'
     | '/history'
     | '/live'
+    | '/ml'
     | '/notifications'
     | '/settings'
   fileRoutesById: FileRoutesById
@@ -130,6 +142,7 @@ export interface RootRouteChildren {
   DevicesRoute: typeof DevicesRoute
   HistoryRoute: typeof HistoryRoute
   LiveRoute: typeof LiveRoute
+  MlRoute: typeof MlRoute
   NotificationsRoute: typeof NotificationsRoute
   SettingsRoute: typeof SettingsRoute
 }
@@ -148,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ml': {
+      id: '/ml'
+      path: '/ml'
+      fullPath: '/ml'
+      preLoaderRoute: typeof MlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/live': {
@@ -202,9 +222,19 @@ const rootRouteChildren: RootRouteChildren = {
   DevicesRoute: DevicesRoute,
   HistoryRoute: HistoryRoute,
   LiveRoute: LiveRoute,
+  MlRoute: MlRoute,
   NotificationsRoute: NotificationsRoute,
   SettingsRoute: SettingsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

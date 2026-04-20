@@ -6,7 +6,6 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { ThreatBadge } from "@/components/threat-badge";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/live")({
@@ -33,44 +32,34 @@ interface Detection {
   device_id: string | null;
 }
 
+import { getDetectionsFn } from "@/lib/api";
+
 function LiveMonitoring() {
   const [latest, setLatest] = useState<Detection | null>(null);
   const [feed, setFeed] = useState<Detection[]>([]);
 
+  const load = async () => {
+    const data = await getDetectionsFn();
+    const list = (data ?? []) as unknown as Detection[];
+    setFeed(list.slice(0, 8));
+    setLatest((prev) => {
+      const net = list[0];
+      if (net && net.id !== prev?.id) {
+        if (net.threat_level === "high") {
+          toast.error(`⚠️ Ancaman tinggi: ${net.primary_label || "objek"}`, {
+            description: `Confidence ${((net.max_confidence || 0) * 100).toFixed(0)}%`,
+          });
+        }
+        return net;
+      }
+      return prev || net;
+    });
+  };
+
   useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase
-        .from("detections")
-        .select("*")
-        .order("detected_at", { ascending: false })
-        .limit(8);
-      const list = (data ?? []) as unknown as Detection[];
-      setFeed(list);
-      setLatest(list[0] ?? null);
-    };
     load();
-
-    const channel = supabase
-      .channel("live-detections")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "detections" },
-        (payload) => {
-          const d = payload.new as unknown as Detection;
-          setLatest(d);
-          setFeed((prev) => [d, ...prev].slice(0, 8));
-          if (d.threat_level === "high") {
-            toast.error(`⚠️ Ancaman tinggi: ${d.primary_label ?? "objek"}`, {
-              description: `Confidence ${((d.max_confidence ?? 0) * 100).toFixed(0)}%`,
-            });
-          }
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const interval = setInterval(load, 5000); // Poll every 5s for live feel
+    return () => clearInterval(interval);
   }, []);
 
   return (

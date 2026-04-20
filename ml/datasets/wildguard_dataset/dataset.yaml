@@ -1,0 +1,12 @@
+names:
+  0: Tiger
+  1: Elephant
+  2: Monkey
+  3: Deer
+  4: Wild Boar
+  5: Person
+  6: Unknown
+path: C:\Users\eka\Downloads\beastly-vision\ml\datasets\wildguard_dataset
+test: test/images
+train: train/images
+val: val/images

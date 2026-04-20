@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Copy } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { PageHeader } from "@/components/page-header";
@@ -9,8 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { updateProfileFn } from "@/lib/api";
 
 export const Route = createFileRoute("/settings")({
   component: () => (
@@ -20,21 +20,26 @@ export const Route = createFileRoute("/settings")({
   ),
 });
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const INGEST_URL = `${SUPABASE_URL}/functions/v1/ingest`;
+const INGEST_URL = typeof window !== 'undefined' ? `${window.location.origin}/_server?_serverFnId=ingestFn` : '';
 
 function Settings() {
   const { user, isAdmin } = useAuth();
-  const [fullName, setFullName] = useState(user?.user_metadata?.full_name ?? "");
+  const [fullName, setFullName] = useState("");
+
+  useEffect(() => {
+    if (user) {
+      setFullName(user.fullName || "");
+    }
+  }, [user]);
 
   const saveProfile = async () => {
     if (!user) return;
-    const { error } = await supabase
-      .from("profiles")
-      .update({ full_name: fullName })
-      .eq("id", user.id);
-    if (error) toast.error(error.message);
-    else toast.success("Profil disimpan");
+    try {
+      await updateProfileFn({ data: { full_name: fullName } });
+      toast.success("Profil disimpan");
+    } catch (error: any) {
+      toast.error(error.message);
+    }
   };
 
   const copy = (s: string) => {
@@ -90,7 +95,7 @@ function Settings() {
             <div>
               <h3 className="font-semibold mb-2">Endpoint Ingest (REST)</h3>
               <p className="text-sm text-muted-foreground mb-3">
-                Bridge MQTT atau perangkat ESP32-CAM dapat mengirim hasil deteksi YOLOv8 ke endpoint berikut.
+                Bridge MQTT atau perangkat ESP32-CAM dapat mengirim hasil deteksi YOLOv8 ke endpoint berikut menggunakan POST.
               </p>
               <div className="flex gap-2">
                 <Input value={INGEST_URL} readOnly className="font-mono text-xs" />
@@ -120,10 +125,10 @@ function Settings() {
                 <strong className="text-foreground">MQTT Broker</strong> (Mosquitto / EMQX / HiveMQ) meneruskan pesan ke <strong className="text-foreground">YOLOv8 Worker</strong> (Python) yang subscribe ke topik tersebut.
               </li>
               <li>
-                <strong className="text-foreground">YOLOv8 Worker</strong> menjalankan inference, meng-upload snapshot ke storage publik (S3/Supabase storage), lalu HTTP POST hasil deteksi ke endpoint ingest di atas.
+                <strong className="text-foreground">YOLOv8 Worker</strong> menjalankan inference, meng-upload snapshot ke storage publik, lalu HTTP POST hasil deteksi ke endpoint ingest di atas.
               </li>
               <li>
-                <strong className="text-foreground">Lovable Cloud</strong> menyimpan ke tabel <code className="px-1 py-0.5 rounded bg-muted text-primary">detections</code> dan menyiarkan secara realtime ke dashboard. Notifikasi otomatis dibuat jika threat_level = high.
+                <strong className="text-foreground">WildGuard Server (Neon + Vercel)</strong> menyimpan ke database Neon dan menyegarkan dashboard secara otomatis. Notifikasi otomatis dibuat jika threat_level = high.
               </li>
             </ol>
 
@@ -133,14 +138,6 @@ function Settings() {
               <li><span className="text-warning font-medium">medium</span> — monyet, rusa, anjing liar</li>
               <li><span className="text-success font-medium">low</span> — burung dan hewan kecil lain</li>
             </ul>
-
-            <h3 className="font-semibold mb-2 mt-6">File Referensi</h3>
-            <p className="text-sm text-muted-foreground">
-              Lihat folder <code className="px-1 py-0.5 rounded bg-muted text-primary">docs/</code> di repo untuk:
-              <br />• <code className="text-primary">esp32_cam_publisher.ino</code> — firmware ESP32-CAM
-              <br />• <code className="text-primary">yolo_worker.py</code> — bridge MQTT ↔ YOLOv8 ↔ ingest endpoint
-              <br />• <code className="text-primary">README.md</code> — panduan deployment lengkap
-            </p>
           </Card>
         </TabsContent>
       </Tabs>

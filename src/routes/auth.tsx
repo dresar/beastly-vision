@@ -1,12 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Shield, Loader2 } from "lucide-react";
+import { Shield, Loader2, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { loginFn } from "@/lib/auth";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 
@@ -20,7 +19,6 @@ function AuthPage() {
   const [submitting, setSubmitting] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
 
   useEffect(() => {
     if (!loading && user) navigate({ to: "/" });
@@ -29,36 +27,25 @@ function AuthPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setSubmitting(false);
-    if (error) {
+    try {
+      const result = await loginFn({ data: { email, password } });
+      if (result.success) {
+        toast.success("Selamat datang kembali");
+        window.location.href = "/"; // Force reload to refresh context
+      }
+    } catch (error: any) {
       toast.error("Login gagal", { description: error.message });
-    } else {
-      toast.success("Selamat datang kembali");
-      navigate({ to: "/" });
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    const redirectUrl = `${window.location.origin}/`;
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: { full_name: fullName },
-      },
+  const fillDemo = () => {
+    setEmail("admin@wildguard.io");
+    setPassword("password1234");
+    toast.info("Form terisi dengan akun demo", {
+      description: "Silakan klik tombol Masuk Sistem secara manual."
     });
-    setSubmitting(false);
-    if (error) {
-      toast.error("Pendaftaran gagal", { description: error.message });
-    } else {
-      toast.success("Akun dibuat", {
-        description: "Anda akan diarahkan ke dashboard.",
-      });
-    }
   };
 
   return (
@@ -76,36 +63,40 @@ function AuthPage() {
           </div>
         </div>
 
-        <Card className="p-6 backdrop-blur border-border/60">
-          <Tabs defaultValue="login">
-            <TabsList className="grid grid-cols-2 w-full mb-6">
-              <TabsTrigger value="login">Masuk</TabsTrigger>
-              <TabsTrigger value="signup">Daftar</TabsTrigger>
-            </TabsList>
+        <Card className="p-1 gap-2 flex flex-col backdrop-blur border-border/60">
+          <div className="p-6">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold">Selamat Datang</h2>
+              <p className="text-sm text-muted-foreground">Masukkan kredensial Anda untuk masuk ke sistem.</p>
+            </div>
 
-            <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="operator@wildguard.io"
-                  />
-                </div>
-                <div>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="operator@wildguard.io"
+                />
+              </div>
+              <div>
+                <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
                 </div>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <div className="pt-2 flex flex-col gap-3">
                 <Button
                   type="submit"
                   className="w-full glow-primary"
@@ -114,52 +105,32 @@ function AuthPage() {
                   {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Masuk Sistem
                 </Button>
-              </form>
-            </TabsContent>
+                
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border/40" />
+                  </div>
+                  <div className="relative flex justify-center text-[10px] uppercase text-muted-foreground">
+                    <span className="bg-background px-2">Development Only</span>
+                  </div>
+                </div>
 
-            <TabsContent value="signup">
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div>
-                  <Label htmlFor="fullName">Nama Lengkap</Label>
-                  <Input
-                    id="fullName"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="emailS">Email</Label>
-                  <Input
-                    id="emailS"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="passwordS">Password</Label>
-                  <Input
-                    id="passwordS"
-                    type="password"
-                    required
-                    minLength={6}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={submitting}>
-                  {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Buat Akun
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-primary/20 hover:border-primary/50 text-xs h-9 flex items-center justify-center"
+                  onClick={fillDemo}
+                >
+                  <Key className="h-3 w-3 mr-2 text-primary" />
+                  Gunakan Akses Demo (Auto-fill)
                 </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+              </div>
+            </form>
+          </div>
         </Card>
 
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          Akun baru otomatis berperan <span className="text-primary">viewer</span>. Hubungi admin untuk akses penuh.
+        <p className="text-center text-[10px] text-muted-foreground mt-8 uppercase tracking-widest">
+          © 2026 WildGuard Systems • Restricted Access
         </p>
       </div>
     </div>

@@ -6,8 +6,8 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getNotificationsFn } from "@/lib/api";
 
 export const Route = createFileRoute("/notifications")({
   component: () => (
@@ -30,29 +30,14 @@ function Notifications() {
   const [items, setItems] = useState<Notif[]>([]);
 
   useEffect(() => {
-    supabase
-      .from("notifications")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(100)
-      .then(({ data }) => setItems((data ?? []) as Notif[]));
-
-    const ch = supabase
-      .channel("notif-realtime")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications" },
-        (payload) => {
-          const n = payload.new as Notif;
-          setItems((prev) => [n, ...prev]);
-          if (n.severity === "high") toast.error(n.title, { description: n.message });
-          else toast(n.title, { description: n.message });
-        },
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
+    getNotificationsFn().then((res) => setItems(res as unknown as Notif[]));
+    
+    // For demo purposes, we'll poll every 10 seconds
+    const interval = setInterval(() => {
+      getNotificationsFn().then((res) => setItems(res as unknown as Notif[]));
+    }, 10000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const sevColor = (s: string) =>

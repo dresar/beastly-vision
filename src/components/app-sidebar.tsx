@@ -9,6 +9,7 @@ import {
   Settings,
   LogOut,
   Shield,
+  Brain,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
@@ -19,12 +20,17 @@ const nav = [
   { to: "/live", label: "Live Monitoring", icon: Radio },
   { to: "/history", label: "Riwayat Deteksi", icon: History },
   { to: "/analytics", label: "Analitik", icon: BarChart3 },
+  { to: "/ml", label: "ML Operations", icon: Brain },
   { to: "/devices", label: "Manajemen Perangkat", icon: Cpu },
   { to: "/notifications", label: "Notifikasi", icon: Bell },
   { to: "/settings", label: "Pengaturan", icon: Settings },
 ] as const;
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  isMobile?: boolean;
+}
+
+export function AppSidebar({ isMobile }: AppSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut, isAdmin } = useAuth();
@@ -34,8 +40,8 @@ export function AppSidebar() {
     navigate({ to: "/auth" });
   };
 
-  return (
-    <aside className="hidden md:flex md:w-64 lg:w-72 flex-col border-r border-sidebar-border bg-sidebar h-screen sticky top-0">
+  const content = (
+    <div className="flex flex-col h-full bg-sidebar">
       <div className="p-5 border-b border-sidebar-border flex items-center gap-3">
         <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center glow-primary">
           <Shield className="h-5 w-5 text-primary-foreground" />
@@ -91,6 +97,14 @@ export function AppSidebar() {
           <LogOut className="h-4 w-4 mr-2" /> Keluar
         </Button>
       </div>
+    </div>
+  );
+
+  if (isMobile) return content;
+
+  return (
+    <aside className="hidden md:flex md:w-64 lg:w-72 flex-col border-r border-sidebar-border bg-sidebar h-screen sticky top-0">
+      {content}
     </aside>
   );
 }

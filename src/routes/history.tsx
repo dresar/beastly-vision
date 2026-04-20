@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ThreatBadge } from "@/components/threat-badge";
-import { supabase } from "@/integrations/supabase/client";
+
 
 export const Route = createFileRoute("/history")({
   component: () => (
@@ -27,6 +27,8 @@ interface Detection {
   device_id: string | null;
 }
 
+import { getDetectionsFn } from "@/lib/api";
+
 function History() {
   const [data, setData] = useState<Detection[]>([]);
   const [search, setSearch] = useState("");
@@ -34,12 +36,7 @@ function History() {
   const [minConf, setMinConf] = useState<string>("0");
 
   useEffect(() => {
-    supabase
-      .from("detections")
-      .select("id, primary_label, threat_level, detected_at, max_confidence, image_url, device_id")
-      .order("detected_at", { ascending: false })
-      .limit(500)
-      .then(({ data }) => setData((data ?? []) as Detection[]));
+    getDetectionsFn().then((res) => setData(res as unknown as Detection[]));
   }, []);
 
   const filtered = useMemo(() => {
