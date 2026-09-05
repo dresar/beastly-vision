@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "host": "broker.emqx.io",
+  "port": 1883,
+  "username": "",
+  "password": "",
+  "device_id": "esp32-cam-2",
+  "topic_prefix": "wildguard",
+  "telegram_enabled": false,
+  "telegram_bot_token": "8733518377:AAFVSPOGz913Q2Tdw4LXmih-QF6mrk2-X1I",
+  "telegram_chat_id": "1696078708",
+  "alert_min_confidence": 0.5,
+  "alert_threat_only": false,
+  "threat_labels": [
+    "person",
+    "boar",
+    "tiger",
+    "elephant"
+  ]
+}

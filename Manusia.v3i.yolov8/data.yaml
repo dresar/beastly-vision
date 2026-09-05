@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['Manusia']
+
+roboflow:
+  workspace: nexin
+  project: manusia-rdpbq
+  version: 3
+  license: Public Domain
+  url: https://universe.roboflow.com/nexin/manusia-rdpbq/dataset/3

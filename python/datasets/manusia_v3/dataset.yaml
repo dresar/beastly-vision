@@ -1,0 +1,7 @@
+﻿path: c:\Users\eka\Downloads\beastly-vision\python\datasets\manusia_v3
+train: train/images
+val: val/images
+test: test/images
+nc: 1
+names:
+  - manusia

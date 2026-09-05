@@ -1,0 +1,26 @@
+Deploy Frontend ke Vercel (Python tetap lokal via Cloudflare Tunnel)
+
+1) Siapkan URL tunnel Python FastAPI
+- Jalankan Python API di localhost:8000
+- Jalankan Cloudflare Tunnel, contoh:
+  cloudflared tunnel --url http://localhost:8000
+- Catat URL publik tunnel, contoh:
+  https://wildguard-python.your-domain.com
+
+2) Set environment variable di Vercel Project
+- VITE_PYTHON_AI_URL = https://wildguard-python.your-domain.com
+- PYTHON_AI_URL      = https://wildguard-python.your-domain.com
+
+3) Deploy frontend
+- Import repo ini ke Vercel
+- Build command: npm run build
+- Output directory: dist/client
+
+4) Verifikasi setelah deploy
+- Buka halaman Settings dan cek status MQTT bridge
+- Buka halaman Training / ML dan coba deteksi gambar
+- Pastikan request ke Python tidak lagi menuju localhost
+
+Catatan penting
+- Jika URL tunnel berubah, update 2 env var di Vercel lalu redeploy.
+- Untuk CORS di Python, pastikan domain Vercel Anda diizinkan.
